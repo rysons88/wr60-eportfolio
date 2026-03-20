@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@300;400&display=swap');
-
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400&display=swap');
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
+  html, body { width: 100%; height: 100%; }
   body {
-    min-height: 100vh;
     background: #05050f;
     display: flex;
     align-items: center;
@@ -17,26 +15,28 @@
     font-family: 'DM Sans', sans-serif;
     overflow: hidden;
   }
-
+  #wrap {
+    position: relative;
+    width: 100%;
+    height: 600px;
+  }
   canvas {
-    position: fixed;
+    position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    z-index: 0;
   }
-
   .content {
-    position: relative;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 2;
     text-align: center;
-    padding: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1.2rem;
-    max-width: 700px;
+    width: 90%;
   }
-
   .label {
     font-family: 'DM Sans', sans-serif;
     font-size: 11px;
@@ -47,37 +47,33 @@
     opacity: 0;
     animation: fadeUp 1s ease forwards 0.4s;
   }
-
   .name {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: clamp(52px, 8vw, 96px);
-    font-weight: 300;
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(42px, 7vw, 80px);
+    font-weight: 200;
     color: #f5f0e8;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.08em;
     line-height: 1;
     opacity: 0;
     animation: fadeUp 1.2s ease forwards 0.7s;
   }
-
   .divider {
     width: 0px;
     height: 0.5px;
     background: rgba(255,255,255,0.2);
     animation: expandLine 1s ease forwards 1.4s;
   }
-
   .typing-wrap {
     font-family: 'DM Sans', sans-serif;
-    font-size: clamp(13px, 1.8vw, 15px);
+    font-size: clamp(12px, 1.6vw, 15px);
     font-weight: 300;
     color: rgba(255,255,255,0.5);
     letter-spacing: 0.04em;
     line-height: 1.7;
-    min-height: 28px;
+    min-height: 24px;
     opacity: 0;
     animation: fadeUp 0.8s ease forwards 1.6s;
   }
-
   .cursor {
     display: inline-block;
     width: 1.5px;
@@ -87,37 +83,8 @@
     vertical-align: middle;
     animation: blink 0.9s step-end infinite;
   }
-
-  .scroll-hint {
-    position: fixed;
-    bottom: 2.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    opacity: 0;
-    animation: fadeUp 1s ease forwards 3.4s;
-  }
-
-  .scroll-hint span {
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.2);
-  }
-
-  .scroll-line {
-    width: 0.5px;
-    height: 40px;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
-    animation: scrollPulse 2s ease-in-out infinite 3.7s;
-  }
-
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(18px); }
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes expandLine {
@@ -128,28 +95,17 @@
     0%, 100% { opacity: 1; }
     50%       { opacity: 0; }
   }
-  @keyframes scrollPulse {
-    0%, 100% { opacity: 0.4; }
-    50%       { opacity: 1; }
-  }
 </style>
 </head>
 <body>
-
-<canvas id="bg"></canvas>
-
-<div class="content">
-  <p class="label">Writing Portfolio &nbsp;&middot;&nbsp; Writing 60 &nbsp;&middot;&nbsp; Winter Quarter</p>
-  <h1 class="name">Ryson Sun</h1>
-  <div class="divider"></div>
-  <p class="typing-wrap">
-    <span id="typed"></span><span class="cursor"></span>
-  </p>
-</div>
-
-<div class="scroll-hint">
-  <span>Scroll</span>
-  <div class="scroll-line"></div>
+<div id="wrap">
+  <canvas id="bg"></canvas>
+  <div class="content">
+    <p class="label">Writing Portfolio &nbsp;&middot;&nbsp; Writing 60 &nbsp;&middot;&nbsp; Winter Quarter</p>
+    <h1 class="name">Ryson Sun</h1>
+    <div class="divider"></div>
+    <p class="typing-wrap"><span id="typed"></span><span class="cursor"></span></p>
+  </div>
 </div>
 
 <script>
@@ -157,7 +113,6 @@ const canvas = document.getElementById('bg');
 const ctx = canvas.getContext('2d');
 let W, H;
 
-/* ── stars ── */
 let stars = [];
 function initStars() {
   stars = [];
@@ -174,179 +129,23 @@ function initStars() {
   }
 }
 
-/* ── shooting stars ── */
 let shoots = [];
 function spawnShoot() {
   shoots.push({
     x: Math.random() * W,
     y: Math.random() * H * 0.5,
-    len: Math.random() * 120 + 60,
-    speed: Math.random() * 6 + 5,
+    len: Math.random() * 100 + 50,
+    speed: Math.random() * 5 + 4,
     angle: Math.PI / 5,
-    alpha: 1,
     life: 0,
-    maxLife: Math.random() * 30 + 20,
+    maxLife: Math.random() * 28 + 18,
   });
 }
 setInterval(spawnShoot, 2800);
 
-/* ── sun ── */
-const SUN = {
-  x: 0, y: 0,
-  radius: 0,
-  rayCount: 16,
-  angle: 0,
-  speed: 0.004,
-};
+const SUN = { x:0, y:0, radius:0, rayCount:16, angle:0, speed:0.004 };
 
 function resize() {
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-  SUN.x = W * 0.82;
-  SUN.y = H * 0.18;
-  SUN.radius = Math.min(W, H) * 0.072;
-  initStars();
-}
-resize();
-window.addEventListener('resize', resize);
-
-let t = 0;
-function draw() {
-  t++;
-  ctx.clearRect(0, 0, W, H);
-
-  /* sky gradient */
-  const grad = ctx.createRadialGradient(SUN.x, SUN.y, SUN.radius * 0.5, SUN.x, SUN.y, H * 0.9);
-  grad.addColorStop(0,   'rgba(40,20,5,0.55)');
-  grad.addColorStop(0.3, 'rgba(15,8,25,0.4)');
-  grad.addColorStop(1,   'rgba(5,5,15,0)');
-  ctx.fillStyle = '#05050f';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  /* stars */
-  for (const s of stars) {
-    s.y -= s.speed;
-    if (s.y < -2) { s.y = H + 2; s.x = Math.random() * W; }
-    const twinkle = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset);
-    const alpha = 0.25 + 0.65 * twinkle;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,250,240,${alpha})`;
-    ctx.fill();
-  }
-
-  /* shooting stars */
-  for (let i = shoots.length - 1; i >= 0; i--) {
-    const s = shoots[i];
-    s.life++;
-    s.x += Math.cos(s.angle) * s.speed;
-    s.y += Math.sin(s.angle) * s.speed;
-    s.alpha = 1 - s.life / s.maxLife;
-    if (s.life >= s.maxLife) { shoots.splice(i, 1); continue; }
-    ctx.beginPath();
-    ctx.moveTo(s.x, s.y);
-    ctx.lineTo(s.x - Math.cos(s.angle) * s.len, s.y - Math.sin(s.angle) * s.len);
-    const sg = ctx.createLinearGradient(
-      s.x, s.y,
-      s.x - Math.cos(s.angle) * s.len,
-      s.y - Math.sin(s.angle) * s.len
-    );
-    sg.addColorStop(0,   `rgba(255,248,220,${s.alpha})`);
-    sg.addColorStop(1,   'rgba(255,248,220,0)');
-    ctx.strokeStyle = sg;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-
-  /* sun glow layers */
-  SUN.angle += SUN.speed;
-  const glowColors = [
-    [SUN.radius * 4,   'rgba(255,160,40,0.04)'],
-    [SUN.radius * 2.8, 'rgba(255,185,70,0.08)'],
-    [SUN.radius * 1.8, 'rgba(255,200,100,0.14)'],
-    [SUN.radius * 1.25,'rgba(255,215,120,0.22)'],
-  ];
-  for (const [r, color] of glowColors) {
-    const g = ctx.createRadialGradient(SUN.x, SUN.y, 0, SUN.x, SUN.y, r);
-    g.addColorStop(0,   color);
-    g.addColorStop(1,   'rgba(255,150,30,0)');
-    ctx.beginPath();
-    ctx.arc(SUN.x, SUN.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-  }
-
-  /* rotating rays */
-  ctx.save();
-  ctx.translate(SUN.x, SUN.y);
-  ctx.rotate(SUN.angle);
-  for (let i = 0; i < SUN.rayCount; i++) {
-    const a = (i / SUN.rayCount) * Math.PI * 2;
-    const innerR = SUN.radius * 1.18;
-    const outerR = SUN.radius * (i % 2 === 0 ? 2.4 : 1.85);
-    const halfW  = i % 2 === 0 ? 0.04 : 0.025;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a - halfW) * innerR, Math.sin(a - halfW) * innerR);
-    ctx.lineTo(Math.cos(a)         * outerR, Math.sin(a)         * outerR);
-    ctx.lineTo(Math.cos(a + halfW) * innerR, Math.sin(a + halfW) * innerR);
-    ctx.closePath();
-    ctx.fillStyle = `rgba(255,210,100,${i % 2 === 0 ? 0.55 : 0.35})`;
-    ctx.fill();
-  }
-  ctx.restore();
-
-  /* sun body */
-  const sunBody = ctx.createRadialGradient(
-    SUN.x - SUN.radius * 0.25, SUN.y - SUN.radius * 0.25, SUN.radius * 0.05,
-    SUN.x, SUN.y, SUN.radius
-  );
-  sunBody.addColorStop(0,    '#fff8e0');
-  sunBody.addColorStop(0.35, '#ffd060');
-  sunBody.addColorStop(0.75, '#ffaa28');
-  sunBody.addColorStop(1,    '#e07010');
-  ctx.beginPath();
-  ctx.arc(SUN.x, SUN.y, SUN.radius, 0, Math.PI * 2);
-  ctx.fillStyle = sunBody;
-  ctx.fill();
-
-  /* sun rim shimmer */
-  ctx.beginPath();
-  ctx.arc(SUN.x, SUN.y, SUN.radius, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,230,130,0.35)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  requestAnimationFrame(draw);
-}
-draw();
-
-/* typing */
-const phrases = [
-  'A writing portfolio for Writing 60, Winter Quarter.',
-  'Documenting my growth as a writer through UC Irvine.',
-  'Artifacts showcasing my writing abilities throughout the course.',
-  'Exploring argument, research, and voice — one piece at a time.',
-];
-let pi = 0, ci = 0, deleting = false;
-const el = document.getElementById('typed');
-
-function type() {
-  const phrase = phrases[pi];
-  if (!deleting) {
-    ci++;
-    el.textContent = phrase.slice(0, ci);
-    if (ci === phrase.length) { deleting = true; setTimeout(type, 2400); return; }
-    setTimeout(type, 55);
-  } else {
-    ci--;
-    el.textContent = phrase.slice(0, ci);
-    if (ci === 0) { deleting = false; pi = (pi + 1) % phrases.length; setTimeout(type, 400); return; }
-    setTimeout(type, 28);
-  }
-}
-setTimeout(type, 2200);
-</script>
-</body>
-</html>
+  const wrap = document.getElementById('wrap');
+  W = canvas.width  = wrap.offsetWidth;
+  H =
