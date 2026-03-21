@@ -46,12 +46,12 @@ let stars=[], shoots=[], cursorTrail=[];
 const SUN={x:0,y:0,radius:0,rayCount:16,angle:0,speed:0.004};
 
 const PLANET_DEFS = [
-  { label:'Context Project',         url:'https://canvas.eee.uci.edu/eportfolios/144105/context-project',         size:0.046, type:'saturn'  },
   { label:'Week 1: Self Assessment', url:'https://canvas.eee.uci.edu/eportfolios/144105/week-1-self-assessment',  size:0.030, type:'neptune' },
-  { label:'Annotated Bibliography',  url:'https://canvas.eee.uci.edu/eportfolios/144105/annotated-bibliography',  size:0.036, type:'jupiter' },
-  { label:'Advocacy Project',        url:'https://canvas.eee.uci.edu/eportfolios/144105/advocacy-project',        size:0.027, type:'mars'    },
-  { label:'Archives',                url:'https://canvas.eee.uci.edu/eportfolios/144105/archives',                size:0.032, type:'earth'   },
   { label:'Reflective Introduction', url:'https://canvas.eee.uci.edu/eportfolios/144105/reflective-introduction', size:0.028, type:'uranus'  },
+  { label:'Archives',                url:'https://canvas.eee.uci.edu/eportfolios/144105/archives',                size:0.032, type:'earth'   },
+  { label:'Context Project',         url:'https://canvas.eee.uci.edu/eportfolios/144105/context-project',         size:0.046, type:'saturn'  },
+  { label:'Advocacy Project',        url:'https://canvas.eee.uci.edu/eportfolios/144105/advocacy-project',        size:0.027, type:'mars'    },
+  { label:'Annotated Bibliography',  url:'https://canvas.eee.uci.edu/eportfolios/144105/annotated-bibliography',  size:0.036, type:'jupiter' },
 ];
 
 let orbitR, centerX, centerY;
@@ -62,21 +62,32 @@ const planetAngles = PLANET_DEFS.map((_,i) => SUN_ANGLE + (i+1)*STEP);
 let planetStates = PLANET_DEFS.map(()=>({ hovered:false, glow:0, bobOffset:Math.random()*Math.PI*2, rot:Math.random()*Math.PI*2 }));
 let t=0;
 
+// Diagonal ship -- alternates between bottom-left to top-right and top-left to bottom-right
 const SHIP = { x:0, y:0, vx:0, vy:0, trail:[], pass:0 };
 
 function launchShip() {
+  // Alternate diagonal directions each pass
   if (SHIP.pass % 2 === 0) {
-    SHIP.x = -60; SHIP.y = H + 60;
-    SHIP.vx = W * 0.0028; SHIP.vy = -H * 0.0022;
+    // bottom-left to top-right
+    SHIP.x = -60;
+    SHIP.y = H + 60;
+    SHIP.vx = W * 0.0028;
+    SHIP.vy = -H * 0.0022;
   } else {
-    SHIP.x = -60; SHIP.y = -60;
-    SHIP.vx = W * 0.0028; SHIP.vy = H * 0.0022;
+    // top-left to bottom-right
+    SHIP.x = -60;
+    SHIP.y = -60;
+    SHIP.vx = W * 0.0028;
+    SHIP.vy = H * 0.0022;
   }
   SHIP.trail = [];
 }
 
 function scheduleShip() {
-  setTimeout(() => { SHIP.pass++; launchShip(); }, 2500 + Math.random()*3000);
+  setTimeout(() => {
+    SHIP.pass++;
+    launchShip();
+  }, 2500 + Math.random() * 3000);
 }
 
 function getPlanetPos(angle, state) {
@@ -180,11 +191,11 @@ function drawPlanet(p,state,pos){
   }
 }
 
-function drawShipAt(x,y,heading){
-  const s=Math.min(W,H)*0.045;
-  ctx.save();ctx.translate(x,y);ctx.rotate(heading);
-  const flicker=s*(1.0+0.5*Math.sin(Date.now()*0.04));
-  const fg=ctx.createLinearGradient(-s,0,-s-flicker,0);
+function drawShipAt(x, y, heading) {
+  const s = Math.min(W,H)*0.045;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(heading);
+  const flicker = s*(1.0+0.5*Math.sin(Date.now()*0.04));
+  const fg = ctx.createLinearGradient(-s,0,-s-flicker,0);
   fg.addColorStop(0,'rgba(255,210,60,1)');fg.addColorStop(0.4,'rgba(255,100,20,0.8)');fg.addColorStop(1,'rgba(255,40,0,0)');
   ctx.beginPath();ctx.moveTo(-s*0.95,-s*0.2);ctx.lineTo(-s*0.95-flicker,0);ctx.lineTo(-s*0.95,s*0.2);ctx.closePath();ctx.fillStyle=fg;ctx.fill();
   const bg=ctx.createLinearGradient(0,-s*0.35,0,s*0.35);
@@ -211,7 +222,9 @@ function resize(){
   orbitR=Math.min(W,H)*0.36;
   SUN.x=centerX+Math.cos(SUN_ANGLE)*orbitR;
   SUN.y=centerY+Math.sin(SUN_ANGLE)*orbitR;
-  initStars(); SHIP.pass=0; launchShip();
+  initStars();
+  SHIP.pass=0;
+  launchShip();
 }
 resize(); window.addEventListener('resize',resize);
 
@@ -254,12 +267,21 @@ function draw(){
 
   PLANET_DEFS.forEach((p,i)=>{ const pos=getPlanetPos(planetAngles[i],planetStates[i]); drawPlanet(p,planetStates[i],pos); });
 
-  SHIP.x+=SHIP.vx; SHIP.y+=SHIP.vy;
-  SHIP.trail.push({x:SHIP.x,y:SHIP.y});
-  if(SHIP.trail.length>55) SHIP.trail.shift();
-  for(let i=0;i<SHIP.trail.length;i++){const p=SHIP.trail[i];ctx.beginPath();ctx.arc(p.x,p.y,1.5,0,Math.PI*2);ctx.fillStyle=`rgba(160,210,255,${(i/SHIP.trail.length)*0.3})`;ctx.fill();}
-  drawShipAt(SHIP.x,SHIP.y,Math.atan2(SHIP.vy,SHIP.vx));
-  if(SHIP.x>W+120||SHIP.y<-120||SHIP.y>H+120) scheduleShip();
+  // Update diagonal ship
+  SHIP.x += SHIP.vx; SHIP.y += SHIP.vy;
+  SHIP.trail.push({x:SHIP.x, y:SHIP.y});
+  if(SHIP.trail.length > 55) SHIP.trail.shift();
+  for(let i=0;i<SHIP.trail.length;i++){
+    const p=SHIP.trail[i];
+    ctx.beginPath();ctx.arc(p.x,p.y,1.5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(160,210,255,${(i/SHIP.trail.length)*0.3})`;ctx.fill();
+  }
+  const heading = Math.atan2(SHIP.vy, SHIP.vx);
+  drawShipAt(SHIP.x, SHIP.y, heading);
+  // Check if off screen
+  if(SHIP.x > W+120 || SHIP.y < -120 || SHIP.y > H+120) {
+    scheduleShip();
+  }
 
   if(sunHovered)sunPulse=Math.min(sunPulse+.08,1);else sunPulse=Math.max(sunPulse-.05,0);
   const ps=1+sunPulse*.22+.04*Math.sin(t*.08)*sunPulse, sunR=SUN.radius*ps;
