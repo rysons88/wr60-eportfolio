@@ -9,92 +9,41 @@
   html, body { width: 100%; height: 100%; }
   body {
     background: #05050f;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'DM Sans', sans-serif;
-    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Sans', sans-serif; overflow: hidden; cursor: none;
   }
-  #wrap {
-    position: relative;
-    width: 100%;
-    height: 600px;
-  }
-  canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-  }
+  #wrap { position: relative; width: 100%; height: 600px; }
+  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   .content {
-    position: absolute;
-    top: 50%; left: 50%;
+    position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 2;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.2rem;
-    width: 90%;
+    z-index: 2; text-align: center;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 1.2rem; width: 90%;
+    pointer-events: none;
   }
   .label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 300;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    opacity: 0;
-    animation: fadeUp 1s ease forwards 0.4s;
+    font-size: 11px; font-weight: 300; letter-spacing: 0.25em;
+    text-transform: uppercase; color: rgba(255,255,255,0.35);
+    opacity: 0; animation: fadeUp 1s ease forwards 0.4s;
   }
   .name {
     font-family: 'DM Sans', sans-serif;
-    font-size: clamp(42px, 7vw, 80px);
-    font-weight: 200;
-    color: #f5f0e8;
-    letter-spacing: 0.08em;
-    line-height: 1;
-    opacity: 0;
-    animation: fadeUp 1.2s ease forwards 0.7s;
+    font-size: clamp(42px, 7vw, 80px); font-weight: 200;
+    color: #f5f0e8; letter-spacing: 0.08em; line-height: 1;
+    opacity: 0; animation: fadeUp 1.2s ease forwards 0.7s;
   }
-  .divider {
-    width: 0px;
-    height: 0.5px;
-    background: rgba(255,255,255,0.2);
-    animation: expandLine 1s ease forwards 1.4s;
-  }
+  .divider { width: 0px; height: 0.5px; background: rgba(255,255,255,0.2); animation: expandLine 1s ease forwards 1.4s; }
   .typing-wrap {
-    font-family: 'DM Sans', sans-serif;
-    font-size: clamp(12px, 1.6vw, 15px);
-    font-weight: 300;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 0.04em;
-    line-height: 1.7;
-    min-height: 24px;
-    opacity: 0;
-    animation: fadeUp 0.8s ease forwards 1.6s;
+    font-size: clamp(12px, 1.6vw, 15px); font-weight: 300;
+    color: rgba(255,255,255,0.5); letter-spacing: 0.04em;
+    line-height: 1.7; min-height: 24px;
+    opacity: 0; animation: fadeUp 0.8s ease forwards 1.6s;
   }
-  .cursor {
-    display: inline-block;
-    width: 1.5px;
-    height: 1em;
-    background: rgba(255,255,255,0.4);
-    margin-left: 2px;
-    vertical-align: middle;
-    animation: blink 0.9s step-end infinite;
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes expandLine {
-    from { width: 0px; }
-    to   { width: 80px; }
-  }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0; }
-  }
+  .cursor { display: inline-block; width: 1.5px; height: 1em; background: rgba(255,255,255,0.4); margin-left: 2px; vertical-align: middle; animation: blink 0.9s step-end infinite; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes expandLine { from { width:0px; } to { width:80px; } }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
 </style>
 </head>
 <body>
@@ -107,162 +56,127 @@
     <p class="typing-wrap"><span id="typed"></span><span class="cursor"></span></p>
   </div>
 </div>
-
 <script>
 const canvas = document.getElementById('bg');
 const ctx = canvas.getContext('2d');
 let W, H;
+let mouse = { x:-999, y:-999 };
+let sunHovered = false, sunPulse = 0;
+let stars = [], shoots = [], cursorTrail = [];
+const SUN = { x:0, y:0, radius:0, rayCount:16, angle:0, speed:0.004 };
+const SHIP = { x:-120, y:0, speed:0, active:false, trail:[] };
 
-let stars = [];
 function initStars() {
   stars = [];
-  const n = Math.floor((W * H) / 3500);
-  for (let i = 0; i < n; i++) {
-    stars.push({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.1 + 0.2,
-      speed: Math.random() * 0.25 + 0.05,
-      twinkleOffset: Math.random() * Math.PI * 2,
-      twinkleSpeed: Math.random() * 0.02 + 0.008,
-    });
-  }
+  const n = Math.floor((W*H)/3500);
+  for (let i=0;i<n;i++) stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.1+0.2, speed:Math.random()*0.25+0.05, twinkleOffset:Math.random()*Math.PI*2, twinkleSpeed:Math.random()*0.02+0.008 });
 }
-
-let shoots = [];
-function spawnShoot() {
-  shoots.push({
-    x: Math.random() * W,
-    y: Math.random() * H * 0.5,
-    len: Math.random() * 100 + 50,
-    speed: Math.random() * 5 + 4,
-    angle: Math.PI / 5,
-    life: 0,
-    maxLife: Math.random() * 28 + 18,
-  });
-}
+function spawnShoot() { shoots.push({ x:Math.random()*W, y:Math.random()*H*0.5, len:Math.random()*100+50, speed:Math.random()*5+4, angle:Math.PI/5, life:0, maxLife:Math.random()*28+18 }); }
 setInterval(spawnShoot, 2800);
-
-const SUN = { x:0, y:0, radius:0, rayCount:16, angle:0, speed:0.004 };
-
+function launchShip() { SHIP.x=-120; SHIP.y=H*(0.3+Math.random()*0.35); SHIP.speed=W*0.003; SHIP.active=true; SHIP.trail=[]; }
+function scheduleShip() { setTimeout(()=>launchShip(), 2000+Math.random()*4000); }
 function resize() {
-  const wrap = document.getElementById('wrap');
-  W = canvas.width  = wrap.offsetWidth;
-  H = canvas.height = wrap.offsetHeight;
-  SUN.x = W * 0.82;
-  SUN.y = H * 0.2;
-  SUN.radius = Math.min(W, H) * 0.08;
-  initStars();
+  const wrap=document.getElementById('wrap');
+  W=canvas.width=wrap.offsetWidth; H=canvas.height=wrap.offsetHeight;
+  SUN.x=W*0.82; SUN.y=H*0.2; SUN.radius=Math.min(W,H)*0.08; initStars();
 }
-resize();
-window.addEventListener('resize', resize);
+resize(); window.addEventListener('resize',resize); setTimeout(()=>launchShip(),800);
 
-let t = 0;
+canvas.addEventListener('mousemove', e => {
+  const rect=canvas.getBoundingClientRect();
+  mouse.x=e.clientX-rect.left; mouse.y=e.clientY-rect.top;
+  for(let i=0;i<3;i++) cursorTrail.push({ x:mouse.x+(Math.random()-0.5)*8, y:mouse.y+(Math.random()-0.5)*8, r:Math.random()*1.8+0.4, alpha:0.9, vx:(Math.random()-0.5)*0.6, vy:(Math.random()-0.5)*0.6-0.3, color:Math.random()>0.5?'255,240,180':'180,220,255' });
+  const dx=mouse.x-SUN.x, dy=mouse.y-SUN.y;
+  sunHovered=Math.sqrt(dx*dx+dy*dy)<SUN.radius*1.4;
+});
+canvas.addEventListener('mouseleave',()=>{ mouse.x=-999; sunHovered=false; });
+
+function drawShip(x,y) {
+  ctx.save(); ctx.translate(x,y);
+  const s=Math.min(W,H)*0.05;
+  const flicker=s*(1.0+0.5*Math.sin(Date.now()*0.04));
+  const fg=ctx.createLinearGradient(-s,0,-s-flicker,0);
+  fg.addColorStop(0,'rgba(255,210,60,1)'); fg.addColorStop(0.4,'rgba(255,100,20,0.8)'); fg.addColorStop(1,'rgba(255,40,0,0)');
+  ctx.beginPath(); ctx.moveTo(-s*0.95,-s*0.2); ctx.lineTo(-s*0.95-flicker,0); ctx.lineTo(-s*0.95,s*0.2); ctx.closePath(); ctx.fillStyle=fg; ctx.fill();
+  const bg=ctx.createLinearGradient(0,-s*0.35,0,s*0.35);
+  bg.addColorStop(0,'#ccd6e8'); bg.addColorStop(0.5,'#eef2ff'); bg.addColorStop(1,'#7a90aa');
+  ctx.beginPath(); ctx.moveTo(s,0); ctx.bezierCurveTo(s*0.5,-s*0.3,-s*0.3,-s*0.3,-s,-s*0.18); ctx.lineTo(-s,s*0.18); ctx.bezierCurveTo(-s*0.3,s*0.3,s*0.5,s*0.3,s,0); ctx.closePath(); ctx.fillStyle=bg; ctx.fill();
+  ctx.strokeStyle='rgba(160,190,230,0.3)'; ctx.lineWidth=0.5; ctx.stroke();
+  const cg=ctx.createRadialGradient(s*0.25,-s*0.05,0,s*0.2,0,s*0.28);
+  cg.addColorStop(0,'rgba(180,235,255,1)'); cg.addColorStop(0.5,'rgba(80,160,220,0.8)'); cg.addColorStop(1,'rgba(20,70,130,0.4)');
+  ctx.beginPath(); ctx.ellipse(s*0.22,0,s*0.28,s*0.16,0,0,Math.PI*2); ctx.fillStyle=cg; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(s*0.05,-s*0.28); ctx.lineTo(-s*0.45,-s*0.62); ctx.lineTo(-s*0.8,-s*0.28); ctx.closePath(); ctx.fillStyle='#7a90aa'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(s*0.05,s*0.28); ctx.lineTo(-s*0.45,s*0.62); ctx.lineTo(-s*0.8,s*0.28); ctx.closePath(); ctx.fillStyle='#7a90aa'; ctx.fill();
+  ctx.restore();
+}
+
+let t=0;
 function draw() {
   t++;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#05050f';
-  ctx.fillRect(0, 0, W, H);
-
-  const grad = ctx.createRadialGradient(SUN.x, SUN.y, SUN.radius*0.5, SUN.x, SUN.y, H*0.9);
-  grad.addColorStop(0,   'rgba(40,20,5,0.55)');
-  grad.addColorStop(0.3, 'rgba(15,8,25,0.4)');
-  grad.addColorStop(1,   'rgba(5,5,15,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  for (const s of stars) {
-    s.y -= s.speed;
-    if (s.y < -2) { s.y = H + 2; s.x = Math.random() * W; }
-    const twinkle = 0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset);
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,250,240,${0.25 + 0.65 * twinkle})`;
-    ctx.fill();
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#05050f'; ctx.fillRect(0,0,W,H);
+  const grad=ctx.createRadialGradient(SUN.x,SUN.y,SUN.radius*0.5,SUN.x,SUN.y,H*0.9);
+  grad.addColorStop(0,'rgba(40,20,5,0.55)'); grad.addColorStop(0.3,'rgba(15,8,25,0.4)'); grad.addColorStop(1,'rgba(5,5,15,0)');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  for(const s of stars) {
+    s.y-=s.speed; if(s.y<-2){s.y=H+2;s.x=Math.random()*W;}
+    const tw=0.5+0.5*Math.sin(t*s.twinkleSpeed+s.twinkleOffset);
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(255,250,240,${0.25+0.65*tw})`; ctx.fill();
   }
-
-  for (let i = shoots.length - 1; i >= 0; i--) {
-    const s = shoots[i];
-    s.life++;
-    s.x += Math.cos(s.angle) * s.speed;
-    s.y += Math.sin(s.angle) * s.speed;
-    const alpha = 1 - s.life / s.maxLife;
-    if (s.life >= s.maxLife) { shoots.splice(i, 1); continue; }
-    const sg = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.angle)*s.len, s.y - Math.sin(s.angle)*s.len);
-    sg.addColorStop(0, `rgba(255,248,220,${alpha})`);
-    sg.addColorStop(1, 'rgba(255,248,220,0)');
-    ctx.beginPath();
-    ctx.moveTo(s.x, s.y);
-    ctx.lineTo(s.x - Math.cos(s.angle)*s.len, s.y - Math.sin(s.angle)*s.len);
-    ctx.strokeStyle = sg;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+  for(let i=shoots.length-1;i>=0;i--) {
+    const s=shoots[i]; s.life++; s.x+=Math.cos(s.angle)*s.speed; s.y+=Math.sin(s.angle)*s.speed;
+    const alpha=1-s.life/s.maxLife; if(s.life>=s.maxLife){shoots.splice(i,1);continue;}
+    const sg=ctx.createLinearGradient(s.x,s.y,s.x-Math.cos(s.angle)*s.len,s.y-Math.sin(s.angle)*s.len);
+    sg.addColorStop(0,`rgba(255,248,220,${alpha})`); sg.addColorStop(1,'rgba(255,248,220,0)');
+    ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(s.x-Math.cos(s.angle)*s.len,s.y-Math.sin(s.angle)*s.len);
+    ctx.strokeStyle=sg; ctx.lineWidth=1.2; ctx.stroke();
   }
-
-  SUN.angle += SUN.speed;
-  for (const [r, color] of [
-    [SUN.radius*4,   'rgba(255,160,40,0.04)'],
-    [SUN.radius*2.8, 'rgba(255,185,70,0.08)'],
-    [SUN.radius*1.8, 'rgba(255,200,100,0.14)'],
-    [SUN.radius*1.25,'rgba(255,215,120,0.22)'],
-  ]) {
-    const g = ctx.createRadialGradient(SUN.x, SUN.y, 0, SUN.x, SUN.y, r);
-    g.addColorStop(0, color); g.addColorStop(1, 'rgba(255,150,30,0)');
-    ctx.beginPath(); ctx.arc(SUN.x, SUN.y, r, 0, Math.PI*2);
-    ctx.fillStyle = g; ctx.fill();
+  if(sunHovered) sunPulse=Math.min(sunPulse+0.08,1); else sunPulse=Math.max(sunPulse-0.05,0);
+  const ps=1+sunPulse*0.22+0.04*Math.sin(t*0.08)*sunPulse;
+  const sunR=SUN.radius*ps;
+  SUN.angle+=SUN.speed*(1+sunPulse*1.5);
+  for(const [r,color] of [[sunR*4,`rgba(255,160,40,${0.04+sunPulse*0.06})`],[sunR*2.8,`rgba(255,185,70,${0.08+sunPulse*0.1})`],[sunR*1.8,`rgba(255,200,100,${0.14+sunPulse*0.12})`],[sunR*1.25,`rgba(255,215,120,${0.22+sunPulse*0.15})`]]) {
+    const g=ctx.createRadialGradient(SUN.x,SUN.y,0,SUN.x,SUN.y,r);
+    g.addColorStop(0,color); g.addColorStop(1,'rgba(255,150,30,0)');
+    ctx.beginPath(); ctx.arc(SUN.x,SUN.y,r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
   }
-
-  ctx.save();
-  ctx.translate(SUN.x, SUN.y);
-  ctx.rotate(SUN.angle);
-  for (let i = 0; i < SUN.rayCount; i++) {
-    const a = (i / SUN.rayCount) * Math.PI * 2;
-    const innerR = SUN.radius * 1.18;
-    const outerR = SUN.radius * (i % 2 === 0 ? 2.4 : 1.85);
-    const halfW  = i % 2 === 0 ? 0.04 : 0.025;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a - halfW)*innerR, Math.sin(a - halfW)*innerR);
-    ctx.lineTo(Math.cos(a)*outerR, Math.sin(a)*outerR);
-    ctx.lineTo(Math.cos(a + halfW)*innerR, Math.sin(a + halfW)*innerR);
-    ctx.closePath();
-    ctx.fillStyle = `rgba(255,210,100,${i%2===0?0.55:0.35})`;
-    ctx.fill();
+  ctx.save(); ctx.translate(SUN.x,SUN.y); ctx.rotate(SUN.angle);
+  for(let i=0;i<SUN.rayCount;i++) {
+    const a=(i/SUN.rayCount)*Math.PI*2, iR=sunR*1.18, oR=sunR*(i%2===0?2.4:1.85), hW=i%2===0?0.04:0.025;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a-hW)*iR,Math.sin(a-hW)*iR); ctx.lineTo(Math.cos(a)*oR,Math.sin(a)*oR); ctx.lineTo(Math.cos(a+hW)*iR,Math.sin(a+hW)*iR);
+    ctx.closePath(); ctx.fillStyle=`rgba(255,210,100,${i%2===0?0.55:0.35})`; ctx.fill();
   }
   ctx.restore();
-
-  const sb = ctx.createRadialGradient(SUN.x-SUN.radius*0.25, SUN.y-SUN.radius*0.25, SUN.radius*0.05, SUN.x, SUN.y, SUN.radius);
-  sb.addColorStop(0, '#fff8e0'); sb.addColorStop(0.35, '#ffd060');
-  sb.addColorStop(0.75, '#ffaa28'); sb.addColorStop(1, '#e07010');
-  ctx.beginPath(); ctx.arc(SUN.x, SUN.y, SUN.radius, 0, Math.PI*2);
-  ctx.fillStyle = sb; ctx.fill();
-  ctx.beginPath(); ctx.arc(SUN.x, SUN.y, SUN.radius, 0, Math.PI*2);
-  ctx.strokeStyle = 'rgba(255,230,130,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
-
+  const sb=ctx.createRadialGradient(SUN.x-sunR*0.25,SUN.y-sunR*0.25,sunR*0.05,SUN.x,SUN.y,sunR);
+  sb.addColorStop(0,'#fff8e0'); sb.addColorStop(0.35,'#ffd060'); sb.addColorStop(0.75,'#ffaa28'); sb.addColorStop(1,'#e07010');
+  ctx.beginPath(); ctx.arc(SUN.x,SUN.y,sunR,0,Math.PI*2); ctx.fillStyle=sb; ctx.fill();
+  ctx.beginPath(); ctx.arc(SUN.x,SUN.y,sunR,0,Math.PI*2); ctx.strokeStyle=`rgba(255,230,130,${0.35+sunPulse*0.4})`; ctx.lineWidth=1.5+sunPulse*2; ctx.stroke();
+  if(SHIP.active) {
+    SHIP.x+=SHIP.speed; SHIP.trail.push({x:SHIP.x,y:SHIP.y}); if(SHIP.trail.length>55) SHIP.trail.shift();
+    for(let i=0;i<SHIP.trail.length;i++) { const p=SHIP.trail[i]; ctx.beginPath(); ctx.arc(p.x,p.y,1.5,0,Math.PI*2); ctx.fillStyle=`rgba(160,210,255,${(i/SHIP.trail.length)*0.3})`; ctx.fill(); }
+    drawShip(SHIP.x,SHIP.y);
+    if(SHIP.x>W+150){ SHIP.active=false; scheduleShip(); }
+  }
+  for(let i=cursorTrail.length-1;i>=0;i--) {
+    const p=cursorTrail[i]; p.x+=p.vx; p.y+=p.vy; p.alpha-=0.035;
+    if(p.alpha<=0){cursorTrail.splice(i,1);continue;}
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`rgba(${p.color},${p.alpha})`; ctx.fill();
+  }
+  if(mouse.x>0) {
+    ctx.beginPath(); ctx.arc(mouse.x,mouse.y,3,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(mouse.x,mouse.y,8,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=0.8; ctx.stroke();
+  }
   requestAnimationFrame(draw);
 }
 draw();
-
-const phrases = [
-  'A writing portfolio for Writing 60, Winter Quarter.',
-  'Documenting my growth as a writer through UC Irvine.',
-  'Artifacts showcasing my writing abilities throughout the course.',
-  'Exploring argument, research, and voice — one piece at a time.',
-];
-let pi = 0, ci = 0, deleting = false;
-const el = document.getElementById('typed');
+const phrases=['A writing portfolio for Writing 60, Winter Quarter.','Documenting my growth as a writer through UC Irvine.','Artifacts showcasing my writing abilities throughout the course.','Exploring argument, research, and voice — one piece at a time.'];
+let pi=0,ci=0,deleting=false;
+const el=document.getElementById('typed');
 function type() {
-  const phrase = phrases[pi];
-  if (!deleting) {
-    el.textContent = phrase.slice(0, ++ci);
-    if (ci === phrase.length) { deleting = true; setTimeout(type, 2400); return; }
-    setTimeout(type, 55);
-  } else {
-    el.textContent = phrase.slice(0, --ci);
-    if (ci === 0) { deleting = false; pi = (pi+1)%phrases.length; setTimeout(type, 400); return; }
-    setTimeout(type, 28);
-  }
+  const phrase=phrases[pi];
+  if(!deleting){ el.textContent=phrase.slice(0,++ci); if(ci===phrase.length){deleting=true;setTimeout(type,2400);return;} setTimeout(type,55); }
+  else { el.textContent=phrase.slice(0,--ci); if(ci===0){deleting=false;pi=(pi+1)%phrases.length;setTimeout(type,400);return;} setTimeout(type,28); }
 }
-setTimeout(type, 2200);
+setTimeout(type,2200);
 </script>
 </body>
 </html>
